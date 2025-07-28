@@ -1,0 +1,91 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brasília",
+        "capital": true,
+        "population": 3055149,
+        "state": "Distrito Federal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-47.8822, -15.7942]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "São Paulo",
+        "capital": false,
+        "population": 12396372,
+        "state": "São Paulo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-46.6333, -23.5505]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Rio de Janeiro",
+        "capital": false,
+        "population": 6747815,
+        "state": "Rio de Janeiro"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-43.1729, -22.9068]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Belo Horizonte",
+        "capital": true,
+        "population": 2521564,
+        "state": "Minas Gerais"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-43.9378, -19.9208]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Região Sudeste",
+        "description": "Principal região econômica do Brasil",
+        "area_km2": 924511
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-51.0, -25.0],
+          [-39.0, -25.0],
+          [-39.0, -14.0],
+          [-51.0, -14.0],
+          [-51.0, -25.0]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Rodovia BR-040",
+        "type": "highway",
+        "length_km": 1178
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-47.8822, -15.7942],
+          [-43.9378, -19.9208],
+          [-43.1729, -22.9068]
+        ]
+      }
+    }
+  ]
+}

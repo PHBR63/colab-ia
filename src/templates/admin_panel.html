@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração - WebGIS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #007bff;
+        }
+
+        .file-upload.dragover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .example-style {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ Painel de Administração - WebGIS</h1>
+        <div class="header-actions">
+            <a href="/" class="btn btn-secondary">Ver Mapa</a>
+            <form action="/api/admin/logout" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Sair</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Formulário para adicionar nova camada -->
+        <div class="card">
+            <div class="card-header">
+                ➕ Adicionar Nova Camada GeoJSON
+            </div>
+            <div class="card-body">
+                <div id="addLayerMessages"></div>
+                
+                <form id="addLayerForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="name">Nome da Camada:</label>
+                        <input type="text" id="name" name="name" required placeholder="Ex: Municípios de MG">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Descrição:</label>
+                        <input type="text" id="description" name="description" required placeholder="Ex: Limites administrativos dos municípios de Minas Gerais">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="geojson_file">Arquivo GeoJSON:</label>
+                        <div class="file-upload" id="fileUpload">
+                            <input type="file" id="geojson_file" name="geojson_file" accept=".geojson,.json" required>
+                            <p>Clique aqui ou arraste um arquivo GeoJSON</p>
+                            <small>Formato aceito: .geojson ou .json</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="style_config">Configuração de Estilo (JSON):</label>
+                        <textarea id="style_config" name="style_config" placeholder="Configuração opcional de estilo"></textarea>
+                        <div class="example-style">
+                            Exemplo:<br>
+                            {"color": "#ff0000", "weight": 3, "fillOpacity": 0.5, "fillColor": "#ffff00"}
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Adicionar Camada</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de camadas existentes -->
+        <div class="card">
+            <div class="card-header">
+                📋 Camadas Existentes
+            </div>
+            <div class="card-body">
+                <div id="layersListMessages"></div>
+                <div id="layersTableContainer">
+                    <div class="loading">Carregando camadas...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        let layers = [];
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLayers();
+            setupFileUpload();
+        });
+
+        // Configurar upload de arquivo
+        function setupFileUpload() {
+            const fileUpload = document.getElementById('fileUpload');
+            const fileInput = document.getElementById('geojson_file');
+
+            fileUpload.addEventListener('click', () => fileInput.click());
+            
+            fileUpload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUpload.classList.add('dragover');
+            });
+
+            fileUpload.addEventListener('dragleave', () => {
+                fileUpload.classList.remove('dragover');
+            });
+
+            fileUpload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUpload.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    updateFileUploadText(files[0].name);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    updateFileUploadText(e.target.files[0].name);
+                }
+            });
+        }
+
+        function updateFileUploadText(filename) {
+            const fileUpload = document.getElementById('fileUpload');
+            fileUpload.innerHTML = `
+                <p>✅ Arquivo selecionado: ${filename}</p>
+                <small>Clique para trocar o arquivo</small>
+            `;
+        }
+
+        // Envio do formulário para adicionar nova camada
+        document.getElementById('addLayerForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(this);
+            const messagesDiv = document.getElementById('addLayerMessages');
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            
+            // Mostrar loading
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adicionando...';
+            messagesDiv.innerHTML = '<div class="alert alert-info">Processando arquivo...</div>';
+
+            fetch('/api/admin/layers', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                messagesDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+                this.reset();
+                document.getElementById('fileUpload').innerHTML = `
+                    <p>Clique aqui ou arraste um arquivo GeoJSON</p>
+                    <small>Formato aceito: .geojson ou .json</small>
+                `;
+                loadLayers(); // Recarregar lista de camadas
+            })
+            .catch(error => {
+                messagesDiv.innerHTML = '<div class="alert alert-danger">Erro: ' + error.message + '</div>';
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Adicionar Camada';
+            });
+        });
+
+        // Carregar lista de camadas
+        function loadLayers() {
+            const container = document.getElementById('layersTableContainer');
+            container.innerHTML = '<div class="loading">Carregando camadas...</div>';
+
+            fetch('/api/admin/layers')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro ao carregar camadas');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    layers = data;
+                    renderLayersTable();
+                })
+                .catch(error => {
+                    container.innerHTML = '<div class="alert alert-danger">Erro ao carregar camadas: ' + error.message + '</div>';
+                });
+        }
+
+        // Renderizar tabela de camadas
+        function renderLayersTable() {
+            const container = document.getElementById('layersTableContainer');
+            
+            if (layers.length === 0) {
+                container.innerHTML = '<div class="no-data">Nenhuma camada encontrada. Adicione a primeira camada usando o formulário acima.</div>';
+                return;
+            }
+
+            const table = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Descrição</th>
+                            <th>Status</th>
+                            <th>Criado em</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${layers.map(layer => `
+                            <tr>
+                                <td><strong>${escapeHtml(layer.name)}</strong></td>
+                                <td>${escapeHtml(layer.description)}</td>
+                                <td>
+                                    <span class="status-badge ${layer.active ? 'status-active' : 'status-inactive'}">
+                                        ${layer.active ? '✅ Ativa' : '❌ Inativa'}
+                                    </span>
+                                </td>
+                                <td>${new Date(layer.created_at).toLocaleString('pt-BR')}</td>
+                                <td>
+                                    <button class="btn btn-warning btn" onclick="toggleLayer(${layer.id})">
+                                        ${layer.active ? 'Desativar' : 'Ativar'}
+                                    </button>
+                                    <button class="btn btn-danger btn" onclick="deleteLayer(${layer.id})">
+                                        Excluir
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = table;
+        }
+
+        // Alternar status da camada
+        function toggleLayer(id) {
+            if (!confirm('Deseja alterar o status desta camada?')) {
+                return;
+            }
+
+            fetch(`/api/admin/layers/${id}/toggle`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                document.getElementById('layersListMessages').innerHTML = 
+                    '<div class="alert alert-success">' + data.message + '</div>';
+                loadLayers();
+            })
+            .catch(error => {
+                document.getElementById('layersListMessages').innerHTML = 
+                    '<div class="alert alert-danger">Erro: ' + error.message + '</div>';
+            });
+        }
+
+        // Excluir camada
+        function deleteLayer(id) {
+            const layer = layers.find(l => l.id === id);
+            if (!confirm(`Deseja realmente excluir a camada "${layer.name}"? Esta ação não pode ser desfeita.`)) {
+                return;
+            }
+
+            fetch(`/api/admin/layers/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                document.getElementById('layersListMessages').innerHTML = 
+                    '<div class="alert alert-success">' + data.message + '</div>';
+                loadLayers();
+            })
+            .catch(error => {
+                document.getElementById('layersListMessages').innerHTML = 
+                    '<div class="alert alert-danger">Erro: ' + error.message + '</div>';
+            });
+        }
+
+        // Função utilitária para escapar HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Limpar mensagens após alguns segundos
+        function clearMessages() {
+            setTimeout(() => {
+                document.getElementById('addLayerMessages').innerHTML = '';
+                document.getElementById('layersListMessages').innerHTML = '';
+            }, 5000);
+        }
+
+        // Auto-limpar mensagens
+        setInterval(clearMessages, 10000);
+    </script>
+</body>
+</html>
