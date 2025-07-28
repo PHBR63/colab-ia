@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGIS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #map { 
+            width: 100%; 
+            height: 100%; 
+        }
+        
+        .sidebar { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-width: 250px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .sidebar h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        
+        .layer-control { 
+            margin: 10px 0; 
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        
+        .layer-control label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .layer-control input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+        
+        .admin-link {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.3s;
+        }
+        
+        .admin-link:hover {
+            background: #0056b3;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .no-layers {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="sidebar">
+        <h3>🗺️ Controle de Camadas</h3>
+        <div id="layerControls" class="layer-controls">
+            <div class="loading">Carregando camadas...</div>
+        </div>
+    </div>
+    
+    <a href="/admin" class="admin-link">⚙️ Administração</a>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Inicializar mapa centralizado no Brasil
+        var map = L.map('map').setView([-15.7942, -47.8822], 4);
+
+        // Adicionar mapa base OpenStreetMap
+        var baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Armazenar camadas carregadas
+        var loadedLayers = {};
+        
+        // Função para aplicar estilos personalizados
+        function applyLayerStyle(feature, styleConfig) {
+            var defaultStyle = {
+                color: '#3388ff',
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0.4
+            };
+            
+            return Object.assign(defaultStyle, styleConfig);
+        }
+
+        // Função para criar popup para features
+        function createPopup(feature) {
+            var popupContent = '<div>';
+            if (feature.properties) {
+                Object.keys(feature.properties).forEach(function(key) {
+                    if (feature.properties[key] !== null && feature.properties[key] !== undefined) {
+                        popupContent += '<strong>' + key + ':</strong> ' + feature.properties[key] + '<br>';
+                    }
+                });
+            }
+            popupContent += '</div>';
+            return popupContent;
+        }
+
+        // Função para alternar a visibilidade da camada
+        function toggleLayer(layerId, isVisible) {
+            if (loadedLayers[layerId]) {
+                if (isVisible) {
+                    loadedLayers[layerId].addTo(map);
+                } else {
+                    map.removeLayer(loadedLayers[layerId]);
+                }
+            }
+        }
+
+        // Buscar e carregar camadas ativas do backend
+        function loadActiveLayers() {
+            fetch('/api/admin/layers/active')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro ao buscar camadas');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const layerControlsDiv = document.getElementById('layerControls');
+                    
+                    if (data.length === 0) {
+                        layerControlsDiv.innerHTML = '<div class="no-layers">Nenhuma camada ativa encontrada</div>';
+                        return;
+                    }
+                    
+                    layerControlsDiv.innerHTML = '';
+                    
+                    data.forEach(layer => {
+                        try {
+                            // Criar grupo de camada GeoJSON
+                            var layerGroup = L.geoJSON(layer.geojson_data, {
+                                style: function(feature) {
+                                    return applyLayerStyle(feature, layer.style_config);
+                                },
+                                onEachFeature: function(feature, layer) {
+                                    if (feature.properties) {
+                                        layer.bindPopup(createPopup(feature));
+                                    }
+                                }
+                            });
+
+                            // Armazenar a camada
+                            loadedLayers[layer.id] = layerGroup;
+                            
+                            // Adicionar ao mapa por padrão
+                            layerGroup.addTo(map);
+
+                            // Criar controle de visibilidade
+                            var layerControl = document.createElement('div');
+                            layerControl.classList.add('layer-control');
+                            layerControl.innerHTML = `
+                                <label>
+                                    <input type="checkbox" 
+                                           checked 
+                                           id="layer-${layer.id}" 
+                                           onchange="toggleLayer(${layer.id}, this.checked)">
+                                    ${layer.name}
+                                </label>
+                                <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
+                                    ${layer.description}
+                                </div>
+                            `;
+                            layerControlsDiv.appendChild(layerControl);
+                            
+                        } catch (error) {
+                            console.error('Erro ao processar camada ' + layer.name + ':', error);
+                            
+                            // Mostrar erro no controle
+                            var errorControl = document.createElement('div');
+                            errorControl.classList.add('layer-control');
+                            errorControl.innerHTML = `
+                                <label style="color: #dc3545;">
+                                    ❌ ${layer.name}
+                                </label>
+                                <div class="error">Erro ao carregar camada</div>
+                            `;
+                            layerControlsDiv.appendChild(errorControl);
+                        }
+                    });
+
+                    // Ajustar view do mapa para mostrar todas as camadas
+                    if (Object.keys(loadedLayers).length > 0) {
+                        var group = new L.featureGroup(Object.values(loadedLayers));
+                        try {
+                            map.fitBounds(group.getBounds(), {padding: [20, 20]});
+                        } catch (e) {
+                            console.log('Não foi possível ajustar os bounds automaticamente');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar camadas:', error);
+                    document.getElementById('layerControls').innerHTML = 
+                        '<div class="error">Erro ao carregar camadas. Verifique a conexão com o servidor.</div>';
+                });
+        }
+
+        // Carregar camadas quando a página carrega
+        document.addEventListener('DOMContentLoaded', function() {
+            loadActiveLayers();
+        });
+
+        // Função global para ser chamada pelos controles
+        window.toggleLayer = toggleLayer;
+    </script>
+</body>
+</html>
